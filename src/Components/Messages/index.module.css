@@ -1,0 +1,8 @@
+.Messages {
+    list-style: none;
+    padding: 10px;
+    overflow: auto;
+    height: 100%;
+    margin: 0;
+    box-sizing: border-box;
+}

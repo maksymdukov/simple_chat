@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<script>
+
+    var users = [];
+    var channels = [];
+
+    var username = '';
+    while(username == ''){
+        username = prompt('Enter Username');
+    }
+    $('#username').html(username);
+
+    var channel = 'public';
+
+
+    function oc(e){
+        console.log('connection opened');
+        $.achex.send({cmd:'register_broadcast', bid:'achexchatdemo'});
+        $.achex.send({bc:'achexchatdemo', online: username, req:'info'});
+    }
+
+
+    function cc(){
+        $.achex.send({bc:'achexchatdemo', offline: username});
+        console.log('closed');
+    }
+    function chatEvent(obj, raw){
+        //logf(raw);
+        //console.log(obj);
+        //var gaga = JSON.parse(raw);
+        if(obj.bc == 'achexchatdemo'){
+            //----
+            if(users[String(obj.FROM)] == null){
+                users[String(obj.FROM)]  = {c:obj.sID};
+            }
+            showUsers();
+            //------
+            if( obj.channel == channel && channel != '' ){
+                // received chat
+                rcvChat(obj);
+            }else if(obj.req != null){
+                // in channel info
+                $.achex.send({bc:'achexchatdemo', inchannel: channel});
+            }else if(obj.inchannel!= null){
+
+            }
+        }else if(obj.FROM != username){
+            if( obj.req == 'info'){
+                $.achex.send({bc:'achexchatdemo', inchannel: channel});
+            }else{
+                rcvWhisper(obj);
+            }
+        }
+    }
+
+    $.achex({
+        username: username,
+        password:'none',
+        reconnect: 3000,
+        logo:{canvas:'logo'},
+        fade: false,
+        opencallback: oc,
+        callback: chatEvent,
+        closecallback: cc
+    });
+
+
+    // ---- chat functions
+    function sendChat(){
+        var str = input.value;
+        if(channel != null && str != null){
+            var to_send = {bc:'achexchatdemo', channel: channel, msg : escape(str) };
+            $.achex.send(to_send);
+            console.log(to_send);
+            input.value= '';
+        }
+    }
+
+    function setChannel(chan){
+        channel = chan;
+    }
+
+    function sendWhisper(usr, str){
+        $.achex.send({to:usr, channel:channel, msg:escape(str)});
+    }
+
+    function rcvChat(obj){
+        $('#chat_window').append(createChatMessage(obj));
+        input.scroll = input.scrollHeight;
+    }
+    function rcvWhisper(obj){
+        $('#chat_window').append(createChatMessage(obj)).css('color', '#ccc');
+        input.scroll = input.scrollHeight;
+    }
+
+    function createChatMessage(obj){
+        var div = document.createElement('div');
+        var msg = document.createElement('span');
+        var from = document.createElement('span');
+
+        from.className = 'from';
+        from.innerHTML = obj.FROM+ ':';
+
+        msg.className= 'msg';
+        msg.innerHTML = unescape(obj.msg);
+
+        if(obj.time != null){
+            var time = document.createElement('span');
+            time.innerHTML = obj.time;
+            time.className = 'time';
+        }
+        div.appendChild(from);
+        div.appendChild(msg);
+        return div;
+    }
+
+    var input = document.getElementById('chat_input');
+
+    input.onkeypress = function(e){
+        switch(e.keyCode){
+            case 13:
+                sendChat();
+                break;
+            default:break;
+        }
+    }
+    function showUsers(){
+        $('#chat_users').html('');
+        for(var i in users){
+            $('#chat_users').append( i + '<Br>');
+        }
+    }
+    // ----
+
+    function logf(str){
+        $('#log').append(str+'<br>')
+    }
+    input.focus();
+
+
+</script>
+</body>
+</html>
